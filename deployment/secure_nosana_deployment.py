@@ -92,7 +92,7 @@ RUN mkdir -p /app/logs /app/data /app/ssl /app/config \\
     && chown -R appuser:appuser /app \\
     && chmod -R 755 /app \\
     && chmod 600 /app/.env \\
-    && chmod 600 /app/service_account.json
+    && chmod 600 /app/google_service_account.json
 
 # Create SSL directory
 RUN mkdir -p /etc/ssl/private /etc/ssl/certs
@@ -482,7 +482,7 @@ services:
       - ./data:/app/data
       - ./config:/app/config
       - ./ssl:/app/ssl
-      - ./service_account.json:/app/service_account.json:ro
+      - ./google_service_account.json:/app/google_service_account.json:ro
     networks:
       - bot-network
 

@@ -141,7 +141,7 @@ IP_WHITELIST=192.168.1.0/24,10.0.0.0/8
 ```bash
 # Secure file permissions
 chmod 600 .env
-chmod 600 service_account.json
+chmod 600 google_service_account.json
 chmod 600 team_members.json
 chmod 755 deploy.sh
 chmod 755 monitor.sh
@@ -246,7 +246,7 @@ pip install --upgrade -r requirements.txt
 ```bash
 # Backup configuration
 tar -czf backup-$(date +%Y%m%d).tar.gz \
-  .env team_members.json service_account.json
+  .env team_members.json google_service_account.json
 
 # Backup logs
 tar -czf logs-$(date +%Y%m%d).tar.gz /app/logs/

@@ -47,7 +47,7 @@ class GoogleSheetsManager:
     def __init__(self):
         self.client = None
         self.spreadsheet = None
-        self.credentials_file = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE")
+        self.credentials_file = self._resolve_service_account_file()
         self.spreadsheet_id = os.getenv("GOOGLE_SPREADSHEET_ID")
         
         if not self.credentials_file or not self.spreadsheet_id:
@@ -80,6 +80,30 @@ class GoogleSheetsManager:
         except Exception as e:
             print(f"❌ Failed to initialize Google Sheets: {e}")
             raise
+    
+    def _resolve_service_account_file(self) -> Optional[str]:
+        """Find the correct service account file, fallback to common alternatives if needed."""
+        env_file = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE")
+        candidates = [
+            env_file,
+            "google_service_account.json",
+            "service_account.json"
+        ]
+        for fname in candidates:
+            if fname and os.path.exists(fname):
+                if fname != env_file and env_file:
+                    # Copy fallback to env_file name for consistency
+                    try:
+                        import shutil
+                        shutil.copy(fname, env_file)
+                        print(f"[GoogleSheetsManager] Copied {fname} to {env_file} for compatibility.")
+                        return env_file
+                    except Exception as e:
+                        print(f"[GoogleSheetsManager] Could not copy {fname} to {env_file}: {e}")
+                        return fname
+                return fname
+        print("[GoogleSheetsManager] Service account file not found. Checked:", candidates)
+        return None
     
     def create_business_briefs_sheet(self, sheet_name: str = "Business Briefs") -> gspread.Worksheet:
         """Create or get the business briefs worksheet"""

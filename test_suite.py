@@ -98,7 +98,7 @@ class TestSuite:
         """Test file permissions for security"""
         sensitive_files = [
             ".env",
-            "service_account.json",
+            "google_service_account.json",
             "team_members.json"
         ]
         

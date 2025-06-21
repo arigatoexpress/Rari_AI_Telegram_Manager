@@ -40,7 +40,7 @@ class NosanaUploader:
             "monitor.sh",
             
             # Google Sheets integration
-            "service_account.json",
+            "google_service_account.json",
             
             # Documentation
             "README.md",
@@ -136,7 +136,7 @@ Upload these essential files:
 - All .py files
 - requirements.txt
 - .env (configured)
-- service_account.json
+- google_service_account.json
 - Dockerfile
 - docker-compose.yml
 - deploy.sh
@@ -159,7 +159,7 @@ ENVIRONMENT SETUP:
    GOOGLE_SPREADSHEET_ID=your_spreadsheet_id
    NOSANA_API_KEY=your_nosana_key
 
-2. Upload service_account.json for Google Sheets
+2. Upload google_service_account.json for Google Sheets
 
 DEPLOYMENT STEPS:
 ================

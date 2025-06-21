@@ -60,7 +60,7 @@ ATOMA_API_KEY=your_atoma_key
 OPENAI_API_KEY=your_openai_key
 
 # Google Sheets (Optional)
-GOOGLE_SERVICE_ACCOUNT_FILE=service_account.json
+GOOGLE_SERVICE_ACCOUNT_FILE=google_service_account.json
 GOOGLE_SPREADSHEET_ID=your_spreadsheet_id
 
 # Nosana (Optional)
@@ -217,7 +217,7 @@ response = openai.ChatCompletion.create(
 
 3. **Set Environment**:
 ```env
-GOOGLE_SERVICE_ACCOUNT_FILE=service_account.json
+GOOGLE_SERVICE_ACCOUNT_FILE=google_service_account.json
 GOOGLE_SPREADSHEET_ID=your_spreadsheet_id
 ```
 
@@ -475,4 +475,61 @@ tg_manager_v2/
 
 ---
 
-**Ready to deploy?** Choose your preferred option above and follow the step-by-step instructions! 
+**Ready to deploy?** Choose your preferred option above and follow the step-by-step instructions!
+
+# How to Use the Bot
+
+## Getting Started
+
+1. **Start the bot**
+   ```bash
+   python telegram_manager_bot_unified.py
+   ```
+2. **Invite the bot to your Telegram group or chat.**
+3. **Use the following commands in your chat:**
+
+---
+
+## Major Commands & Examples
+
+- `/start` — Show the welcome/help message
+- `/help` — Show all available commands
+- `/readall` — Dump all recent messages the bot can access
+- `/add_brief Project X | Kickoff call | Client excited | Schedule next call` — Add a business brief to Google Sheets
+- `/add_lead Jane Doe | Acme Corp | +123456789 | jane@acme.com | Referral` — Add a lead to Google Sheets
+- `/analytics` — Get chat analytics and insights
+- `/search_history invoice` — Search encrypted chat history for the word 'invoice'
+- `/sheets_status` — Check Google Sheets connection and record count
+- `/list_briefs` — List all business briefs from Google Sheets
+
+---
+
+## Google Sheets Integration
+- Make sure your `.env` is set up with:
+  ```env
+  GOOGLE_SERVICE_ACCOUNT_FILE=google_service_account.json
+  GOOGLE_SPREADSHEET_ID=your_spreadsheet_id
+  ```
+- Share your Google Sheet with the service account email (found in your JSON file).
+- All `/add_brief` and `/add_lead` commands will sync to Google Sheets automatically.
+
+---
+
+## Full Chat History
+- To sync all historical messages (even before the bot joined):
+  ```bash
+  python sync_full_history.py --api-id <your_id> --api-hash <your_hash> --phone <your_phone>
+  ```
+- To keep history up to date automatically:
+  ```bash
+  python scheduled_sync.py
+  ```
+
+---
+
+## Troubleshooting
+- If you see errors about service account files, make sure only `google_service_account.json` is present and referenced in `.env`.
+- If you see errors about spreadsheet ID, check your `.env` and share permissions.
+- For encryption errors, let the bot auto-generate a valid key (it will update `.env`).
+
+--- 

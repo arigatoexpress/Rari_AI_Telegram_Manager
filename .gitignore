@@ -2,7 +2,7 @@
 .venv/
 
 # Environment variables
-.env
+# .env  # Temporarily commented out for editing
 
 # macOS files
 .DS_Store
@@ -13,7 +13,9 @@ __pycache__/
 
 # Logs and data
 *.log
-data_store.json
+# data_store.json  # Unignored for integration
+# data/  # Unignored for integration
 
 # Credentials
-service_account.json
+# service_account.json  # Unignored for integration
+# google_service_account.json  # Unignored for integration

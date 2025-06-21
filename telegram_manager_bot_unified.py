@@ -37,6 +37,8 @@ from telegram.ext import (
 from dotenv import load_dotenv
 import sys
 import atexit
+import argparse
+import psutil
 
 # Import our AI clients
 from ollama_client import initialize_ollama_client, get_ollama_client
@@ -73,29 +75,53 @@ ai_backend_name = "Unknown"
 
 PID_FILE = 'telegram_manager_bot_unified.pid'
 
-def check_single_instance():
+def check_single_instance(force=False):
     """Ensure only one instance of the bot is running using a PID file lock."""
     if os.path.exists(PID_FILE):
         try:
             with open(PID_FILE, 'r') as f:
                 old_pid = int(f.read().strip())
-            # Check if process is running
-            import psutil
+            
+            # Check if process is actually running
             if psutil.pid_exists(old_pid):
-                print(f"❌ Another instance of the bot is already running (PID {old_pid}). Exiting.")
+                if not force:
+                    print(f"❌ Another instance of the bot is already running (PID {old_pid}).")
+                    print("   To force start, use: python telegram_manager_bot_unified.py --force")
+                    print("   To stop the existing instance:")
+                    print("     - Kill the process: kill {old_pid}")
+                    print("     - Or delete the PID file: rm {PID_FILE}")
+                    sys.exit(1)
+                else:
+                    print(f"⚠️  Found existing instance (PID {old_pid}), but continuing with --force flag.")
+            else:
+                print(f"🧹 Cleaning up stale PID file (PID {old_pid} not running).")
+                os.remove(PID_FILE)
+        except (ValueError, FileNotFoundError):
+            print("🧹 Cleaning up invalid PID file.")
+            os.remove(PID_FILE)
+        except Exception as e:
+            print(f"⚠️  Error checking PID file: {e}")
+            if not force:
+                print("   To force start, use: python telegram_manager_bot_unified.py --force")
                 sys.exit(1)
-        except Exception:
-            pass
+    
     # Write current PID
     with open(PID_FILE, 'w') as f:
         f.write(str(os.getpid()))
+    
     # Remove PID file on exit
     def remove_pid():
         try:
-            os.remove(PID_FILE)
+            if os.path.exists(PID_FILE):
+                with open(PID_FILE, 'r') as f:
+                    pid = int(f.read().strip())
+                if pid == os.getpid():  # Only remove if it's our PID
+                    os.remove(PID_FILE)
         except Exception:
             pass
+    
     atexit.register(remove_pid)
+    print(f"✅ Bot instance started (PID {os.getpid()})")
 
 def initialize_ai_backend():
     """Initialize the appropriate AI backend based on configuration"""
@@ -469,40 +495,31 @@ async def meeting(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode='Markdown'
     )
 
+# Enhance /readall command
+from chat_history_manager import ChatHistoryManager
+
 async def read_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /readall command - Bot version with message reader info"""
-    if update.effective_user.id != USER_ID:
-        return
-    
-    await update.message.reply_text(
-        "📋 **Full Message Reading Available!**\n\n"
-        "🎯 **New Feature:** I've created a comprehensive message reader that can access all your Telegram messages.\n\n"
-        "🚀 **To use the full message reader:**\n"
-        "1. Add your phone number to .env file: `python setup_phone.py`\n"
-        "2. Test the setup: `python test_message_reader.py`\n"
-        "3. Run the reader: `python telegram_message_reader.py --interactive`\n\n"
-        "📖 **Message Reader Features:**\n"
-        "• Read all messages from all chats\n"
-        "• Filter by date range, keywords, or chat type\n"
-        "• Export to JSON, CSV, or TXT formats\n"
-        "• AI-powered summarization\n"
-        "• Interactive search and browsing\n"
-        "• Privacy-focused local processing\n\n"
-        "💡 **Quick Examples:**\n"
-        "• `python telegram_message_reader.py --recent-days 7` - Last week's messages\n"
-        "• `python telegram_message_reader.py --chats-only` - Only user chats\n"
-        "• `python telegram_message_reader.py --keywords urgent important` - Filter by keywords\n"
-        "• `python telegram_message_reader.py --export-format json` - Export to JSON\n\n"
-        "🔧 **Current Bot Limitations:**\n"
-        "• Bot tokens can only access messages sent to the bot\n"
-        "• Use `/note <text>` to save important messages manually\n"
-        "• Use `/summary` to view your saved notes\n"
-        "• Use `/generate <prompt>` for AI text generation",
-        parse_mode='Markdown'
-    )
+    """Dump all recent messages the bot can access, paginated if needed."""
+    try:
+        manager = ChatHistoryManager()
+        messages = manager.get_encrypted_history(limit=100)
+        if not messages:
+            await update.message.reply_text("No chat history found.")
+            return
+        # Paginate output if too long
+        page_size = 10
+        for i in range(0, len(messages), page_size):
+            chunk = messages[i:i+page_size]
+            text = "\n\n".join([
+                f"[{msg['date'][:16]}] {msg['sender_name']}: {msg['text'][:200]}" for msg in chunk
+            ])
+            await update.message.reply_text(text)
+        await update.message.reply_text(f"Total messages shown: {len(messages)}")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error in /readall: {str(e)}")
 
 async def brief(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /brief command - Bot version (notes only)"""
+    """Handle /brief command"""
     if update.effective_user.id != USER_ID:
         return
     
@@ -575,10 +592,290 @@ async def keyword_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if any(keyword in text for keyword in KEYWORDS):
         await update.message.reply_text("🔔 **Keyword detected!** This message might need attention.", parse_mode='Markdown')
 
+async def add_brief(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Add a business brief to Google Sheets"""
+    try:
+        from google_sheets_integration import GoogleSheetsManager, BusinessBrief
+        from datetime import datetime
+        
+        # Parse the message text to extract brief details
+        text = update.message.text.replace('/add_brief', '').strip()
+        
+        if not text:
+            await update.message.reply_text(
+                "📝 Please provide brief details:\n"
+                "Format: /add_brief [Chat Title] | [Brief Summary] | [Key Insights] | [Next Steps]\n"
+                "Example: /add_brief Client Meeting | Discussed project timeline | Need follow-up | Schedule demo")
+            return
+        
+        # Simple parsing - you can make this more sophisticated
+        parts = text.split('|')
+        if len(parts) < 4:
+            await update.message.reply_text("❌ Please provide all required fields separated by |")
+            return
+        
+        chat_title = parts[0].strip()
+        executive_brief = parts[1].strip()
+        key_insights = parts[2].strip()
+        next_steps = parts[3].strip()
+        
+        # Create business brief
+        brief = BusinessBrief(
+            chat_title=chat_title,
+            chat_type="Private",
+            date=datetime.now().strftime("%Y-%m-%d"),
+            executive_brief=executive_brief,
+            key_insights=key_insights,
+            conversion_opportunities="To be analyzed",
+            actionable_recommendations="Based on insights",
+            next_steps=next_steps,
+            priority="Medium",
+            status="Open"
+        )
+        
+        # Add to Google Sheets
+        manager = GoogleSheetsManager()
+        success = manager.add_business_brief(brief)
+        
+        if success:
+            await update.message.reply_text(f"✅ Business brief added to Google Sheets!\n📊 Title: {chat_title}")
+        else:
+            await update.message.reply_text("❌ Failed to add business brief. Check Google Sheets configuration.")
+            
+    except ImportError:
+        await update.message.reply_text("❌ Google Sheets integration not available")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {str(e)}")
+
+async def list_briefs(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """List all business briefs from Google Sheets"""
+    try:
+        from google_sheets_integration import GoogleSheetsManager
+        
+        manager = GoogleSheetsManager()
+        worksheet = manager.create_business_briefs_sheet()
+        
+        # Get all records
+        records = worksheet.get_all_records()
+        
+        if not records:
+            await update.message.reply_text("📋 No business briefs found in Google Sheets")
+            return
+        
+        # Format response
+        response = "📋 **Business Briefs:**\n\n"
+        for i, record in enumerate(records[:10], 1):  # Show first 10
+            response += f"{i}. **{record.get('Chat Title', 'N/A')}**\n"
+            response += f"   📅 {record.get('Date', 'N/A')}\n"
+            response += f"   📝 {record.get('Executive Brief', 'N/A')[:100]}...\n"
+            response += f"   🎯 {record.get('Status', 'N/A')}\n\n"
+        
+        if len(records) > 10:
+            response += f"... and {len(records) - 10} more briefs"
+        
+        await update.message.reply_text(response)
+        
+    except ImportError:
+        await update.message.reply_text("❌ Google Sheets integration not available")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {str(e)}")
+
+async def add_lead(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Add a lead to Google Sheets"""
+    try:
+        from google_sheets_integration import GoogleSheetsManager, LeadData
+        from datetime import datetime
+        
+        # Parse the message text
+        text = update.message.text.replace('/add_lead', '').strip()
+        
+        if not text:
+            await update.message.reply_text(
+                "👤 Please provide lead details:\n"
+                "Format: /add_lead [Name] | [Company] | [Phone] | [Email] | [Source]\n"
+                "Example: /add_lead John Doe | ABC Corp | +1234567890 | john@abc.com | Website")
+            return
+        
+        parts = text.split('|')
+        if len(parts) < 5:
+            await update.message.reply_text("❌ Please provide all required fields separated by |")
+            return
+        
+        contact_name = parts[0].strip()
+        company = parts[1].strip()
+        phone = parts[2].strip()
+        email = parts[3].strip()
+        source = parts[4].strip()
+        
+        # Create lead data
+        lead = LeadData(
+            chat_title=f"Lead: {contact_name}",
+            contact_name=contact_name,
+            company=company,
+            phone=phone,
+            email=email,
+            source=source,
+            status="New",
+            last_contact=datetime.now().strftime("%Y-%m-%d"),
+            next_follow_up="",
+            notes="Added via Telegram bot"
+        )
+        
+        # Add to Google Sheets
+        manager = GoogleSheetsManager()
+        success = manager.add_lead(lead)
+        
+        if success:
+            await update.message.reply_text(f"✅ Lead added to Google Sheets!\n👤 {contact_name} from {company}")
+        else:
+            await update.message.reply_text("❌ Failed to add lead. Check Google Sheets configuration.")
+            
+    except ImportError:
+        await update.message.reply_text("❌ Google Sheets integration not available")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {str(e)}")
+
+async def analytics(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Get message analytics and insights"""
+    try:
+        from chat_history_manager import ChatHistoryManager
+        
+        manager = ChatHistoryManager()
+        insights = manager.get_chat_insights(days=30)
+        
+        if "error" in insights:
+            await update.message.reply_text(f"❌ No analytics available: {insights['error']}")
+            return
+        
+        # Format analytics response
+        response = "📊 **Message Analytics (Last 30 Days):**\n\n"
+        response += f"📈 Total Messages: {insights['total_messages']}\n"
+        response += f"📅 Avg Messages/Day: {insights['average_messages_per_day']:.1f}\n\n"
+        
+        if insights['top_senders']:
+            response += "👥 **Top Senders:**\n"
+            for sender, count in insights['top_senders'][:3]:
+                response += f"   • {sender}: {count} messages\n"
+        
+        if insights['top_words']:
+            response += "\n🔤 **Most Used Words:**\n"
+            for word, count in insights['top_words'][:5]:
+                response += f"   • {word}: {count} times\n"
+        
+        await update.message.reply_text(response)
+        
+    except ImportError:
+        await update.message.reply_text("❌ Chat history manager not available")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {str(e)}")
+
+async def search_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Search encrypted chat history"""
+    try:
+        from chat_history_manager import ChatHistoryManager
+        
+        query = update.message.text.replace('/search_history', '').strip()
+        
+        if not query:
+            await update.message.reply_text(
+                "🔍 Please provide a search term:\n"
+                "Format: /search_history [search term]\n"
+                "Example: /search_history meeting")
+            return
+        
+        manager = ChatHistoryManager()
+        results = manager.search_encrypted_history(query, limit=5)
+        
+        if not results:
+            await update.message.reply_text(f"🔍 No messages found containing '{query}'")
+            return
+        
+        response = f"🔍 **Search Results for '{query}':**\n\n"
+        for i, msg in enumerate(results, 1):
+            response += f"{i}. **{msg['sender_name']}** ({msg['date'][:10]})\n"
+            response += f"   {msg['text'][:100]}...\n\n"
+        
+        await update.message.reply_text(response)
+        
+    except ImportError:
+        await update.message.reply_text("❌ Chat history manager not available")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {str(e)}")
+
+async def sheets_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Check Google Sheets connection status"""
+    try:
+        from google_sheets_integration import GoogleSheetsManager
+        
+        manager = GoogleSheetsManager()
+        
+        # Test by trying to access the business briefs sheet
+        worksheet = manager.create_business_briefs_sheet()
+        records = worksheet.get_all_records()
+        
+        response = "✅ **Google Sheets Status:**\n\n"
+        response += f"📊 Business Briefs: {len(records)} records\n"
+        response += f"🔗 Connection: Active\n"
+        response += f"📁 Sheet ID: {os.getenv('GOOGLE_SPREADSHEET_ID', 'Not set')}\n"
+        
+        await update.message.reply_text(response)
+        
+    except ImportError:
+        await update.message.reply_text("❌ Google Sheets integration not available")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Google Sheets Error: {str(e)}")
+
+# Update help command with /readall example
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    help_text = """
+🤖 **Telegram Manager Bot Commands:**
+
+**Basic Commands:**
+• /start - Start the bot
+• /help - Show this help message
+• /status - Check bot status
+
+**AI & Generation:**
+• /generate [prompt] - Generate text with AI
+• /note [text] - Save a note
+• /summary - View recent notes
+• /brief - Generate daily briefing
+
+**Google Sheets Integration:**
+• /add_brief [details] - Add business brief to Google Sheets
+• /list_briefs - List all business briefs
+• /add_lead [details] - Add lead to tracking
+• /sheets_status - Check Google Sheets connection
+
+**Chat History & Analytics:**
+• /analytics - Get message analytics
+• /search_history [term] - Search chat history
+• /history - Get chat insights
+• /readall - Dump all recent messages the bot can access (paginated)
+
+**Utilities:**
+• /meeting - Generate meeting link
+• /followup - View today's follow-ups
+• /ai_status - Check AI backend status
+
+**Examples:**
+• /add_brief Client Meeting | Discussed timeline | Need follow-up | Schedule demo
+• /add_lead John Doe | ABC Corp | +1234567890 | john@abc.com | Website
+• /search_history meeting
+• /readall
+"""
+    await update.message.reply_text(help_text)
+
 # === MAIN FUNCTION ===
 def main():
     """Main function to run the bot"""
-    check_single_instance()
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Telegram Manager Bot')
+    parser.add_argument('--force', action='store_true', 
+                       help='Force start even if another instance is running')
+    args = parser.parse_args()
+    
+    check_single_instance(force=args.force)
     print(f"🤖 Starting Telegram Manager Bot with {ai_backend_name}...")
     
     # Create application
@@ -595,6 +892,13 @@ def main():
     application.add_handler(CommandHandler("brief", brief))
     application.add_handler(CommandHandler("leads", sync_sheet))
     application.add_handler(CommandHandler("ai_status", ai_status))
+    application.add_handler(CommandHandler("add_brief", add_brief))
+    application.add_handler(CommandHandler("list_briefs", list_briefs))
+    application.add_handler(CommandHandler("add_lead", add_lead))
+    application.add_handler(CommandHandler("analytics", analytics))
+    application.add_handler(CommandHandler("search_history", search_history))
+    application.add_handler(CommandHandler("sheets_status", sheets_status))
+    application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CallbackQueryHandler(menu_callback))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, keyword_filter))
     

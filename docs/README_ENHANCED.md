@@ -54,7 +54,7 @@ OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3.2:latest
 
 # Google Sheets
-GOOGLE_SERVICE_ACCOUNT_FILE=service_account.json
+GOOGLE_SERVICE_ACCOUNT_FILE=google_service_account.json
 GOOGLE_SPREADSHEET_ID=your_spreadsheet_id
 
 # DePIN Providers (optional)
