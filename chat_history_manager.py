@@ -18,6 +18,8 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import sqlite3
 import threading
 import logging
+import asyncio
+import concurrent.futures
 
 # Telegram imports
 try:
@@ -37,7 +39,7 @@ class ChatHistoryManager:
         self.data_dir.mkdir(exist_ok=True)
         
         # Encryption setup
-        key: Optional[str] = encryption_key or os.getenv('ENCRYPTION_KEY')
+        key: Optional[str] = encryption_key or os.getenv('FERNET_KEY')
         if not self._is_valid_encryption_key(key):
             key = self._generate_and_store_encryption_key()
         assert isinstance(key, str) and self._is_valid_encryption_key(key), "Encryption key must be a valid Fernet key string."
@@ -67,7 +69,7 @@ class ChatHistoryManager:
     def _generate_and_store_encryption_key(self) -> str:
         key = Fernet.generate_key().decode()
         print(f"🔑 Generated new Fernet encryption key: {key}")
-        self._update_env_file('ENCRYPTION_KEY', key)
+        self._update_env_file('FERNET_KEY', key)
         print("✅ Updated .env with new ENCRYPTION_KEY. Please keep this key safe!")
         return key
     
@@ -148,46 +150,60 @@ class ChatHistoryManager:
         session_name = f"chat_history_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         client = TelegramClient(session_name, int(api_id), api_hash)
 
-        import asyncio
         messages = []
 
         async def fetch():
-            if not await client.is_user_authorized():
-                # Use a lambda for phone callback
-                await client.start(phone=lambda: phone)
-            else:
-                await client.start()
-            if chat_id:
-                entity = await client.get_entity(chat_id)
-                async for message in client.iter_messages(entity, limit=limit):
-                    if message.text:
-                        messages.append({
-                            'id': message.id,
-                            'sender_id': message.sender_id,
-                            'sender_name': self._get_sender_name(message),
-                            'text': message.text,
-                            'date': message.date.isoformat(),
-                            'chat_id': str(chat_id)
-                        })
-            else:
-                async for dialog in client.iter_dialogs():
-                    chat_messages = []
-                    async for message in client.iter_messages(dialog, limit=limit//10):
+            try:
+                if not await client.is_user_authorized():
+                    # Use a lambda for phone callback
+                    await client.start(phone=lambda: phone)
+                else:
+                    await client.start()
+                
+                if chat_id:
+                    entity = await client.get_entity(chat_id)
+                    async for message in client.iter_messages(entity, limit=limit):
                         if message.text:
-                            chat_messages.append({
+                            messages.append({
                                 'id': message.id,
                                 'sender_id': message.sender_id,
                                 'sender_name': self._get_sender_name(message),
                                 'text': message.text,
                                 'date': message.date.isoformat(),
-                                'chat_id': str(dialog.id)
+                                'chat_id': str(chat_id)
                             })
-                    if chat_messages:
-                        messages.extend(chat_messages)
-            await client.disconnect()
+                else:
+                    async for dialog in client.iter_dialogs():
+                        chat_messages = []
+                        async for message in client.iter_messages(dialog, limit=limit//10):
+                            if message.text:
+                                chat_messages.append({
+                                    'id': message.id,
+                                    'sender_id': message.sender_id,
+                                    'sender_name': self._get_sender_name(message),
+                                    'text': message.text,
+                                    'date': message.date.isoformat(),
+                                    'chat_id': str(dialog.id)
+                                })
+                        if chat_messages:
+                            messages.extend(chat_messages)
+            except Exception as e:
+                print(f"Error in fetch: {e}")
+            finally:
+                await client.disconnect()
 
         try:
-            asyncio.run(fetch())
+            # Check if we're already in an event loop
+            try:
+                loop = asyncio.get_running_loop()
+                # We're in an event loop, create a task
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(asyncio.run, fetch())
+                    future.result(timeout=300)  # 5 minute timeout
+            except RuntimeError:
+                # No event loop running, we can use asyncio.run
+                asyncio.run(fetch())
+            
             print(f"✅ Fetched {len(messages)} messages")
             return {'messages': messages, 'total': len(messages)}
         except Exception as e:
