@@ -14,12 +14,12 @@ def check_setup():
     # Check if .env exists
     if not os.path.exists(".env"):
         print("❌ .env file not found")
-        print("Run: python setup.py")
+        print("Run: python setup_env.py")
         return False
     
     # Check if main bot file exists
-    if not os.path.exists("telegram_manager_bot.py"):
-        print("❌ telegram_manager_bot.py not found")
+    if not os.path.exists("telegram_manager_bot_unified.py"):
+        print("❌ telegram_manager_bot_unified.py not found")
         return False
     
     print("✅ Setup looks good")
@@ -29,7 +29,7 @@ def run_tests():
     """Run setup tests"""
     print("🧪 Running tests...")
     try:
-        result = subprocess.run([sys.executable, "test_setup.py"], 
+        result = subprocess.run([sys.executable, "test_suite.py"], 
                               capture_output=True, text=True)
         if result.returncode == 0:
             print("✅ All tests passed")
@@ -64,7 +64,7 @@ def main():
     
     try:
         # Run the bot
-        subprocess.run([sys.executable, "telegram_manager_bot.py"])
+        subprocess.run([sys.executable, "telegram_manager_bot_unified.py"])
     except KeyboardInterrupt:
         print("\n👋 Bot stopped by user")
     except Exception as e:

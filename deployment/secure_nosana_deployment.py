@@ -11,9 +11,8 @@ import hashlib
 import secrets
 import base64
 from typing import Dict, List, Any, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-import jwt
 
 @dataclass
 class TeamMember:
@@ -23,8 +22,8 @@ class TeamMember:
     role: str  # "admin", "user", "viewer"
     telegram_id: Optional[str] = None
     access_level: str = "basic"  # "basic", "advanced", "admin"
-    created_at: str = None
-    last_access: str = None
+    created_at: Optional[str] = None
+    last_access: Optional[str] = None
 
 @dataclass
 class SecurityConfig:
@@ -35,7 +34,7 @@ class SecurityConfig:
     encryption_key: str
     session_timeout: int = 3600  # 1 hour
     max_login_attempts: int = 5
-    ip_whitelist: List[str] = None
+    ip_whitelist: Optional[List[str]] = None
 
 class SecureNosanaDeployer:
     """Secure deployment with team access management"""
@@ -225,13 +224,11 @@ maxretry = 10
         return fail2ban_config
     
     def create_team_access_system(self) -> str:
-        """Create team access management system"""
-        access_system = """#!/usr/bin/env python3
-\"\"\"
-Team Access Management System
-============================
-Manage team member access to the Telegram Manager Bot.
-\"\"\"
+        '''Create team access management system'''
+        access_system = '''#!/usr/bin/env python3
+# Team Access Management System
+# ============================
+# Manage team member access to the Telegram Manager Bot.
 
 import os
 import json
@@ -251,7 +248,7 @@ class TeamAccessManager:
         self.members = self.load_members()
     
     def load_members(self) -> List[Dict]:
-        """Load team members from file"""
+        # Load team members from file
         try:
             if os.path.exists(self.members_file):
                 with open(self.members_file, 'r') as f:
@@ -261,7 +258,7 @@ class TeamAccessManager:
         return []
     
     def save_members(self):
-        """Save team members to file"""
+        # Save team members to file
         try:
             os.makedirs(os.path.dirname(self.members_file), exist_ok=True)
             with open(self.members_file, 'w') as f:
@@ -270,7 +267,7 @@ class TeamAccessManager:
             print(f"Error saving members: {e}")
     
     def add_member(self, name: str, email: str, role: str, telegram_id: str = None) -> bool:
-        """Add new team member"""
+        # Add new team member
         member = {
             "name": name,
             "email": email,
@@ -287,7 +284,7 @@ class TeamAccessManager:
         return True
     
     def authenticate_member(self, api_key: str) -> Optional[Dict]:
-        """Authenticate team member"""
+        # Authenticate team member
         for member in self.members:
             if member.get("api_key") == api_key:
                 member["last_access"] = datetime.now().isoformat()
@@ -316,7 +313,7 @@ def require_auth(f):
 @app.route('/api/team/members', methods=['GET'])
 @require_auth
 def get_members():
-    """Get all team members (admin only)"""
+    # Get all team members (admin only)
     if request.member["role"] != "admin":
         return jsonify({"error": "Admin access required"}), 403
     
@@ -328,7 +325,7 @@ def get_members():
 @app.route('/api/team/members', methods=['POST'])
 @require_auth
 def add_member():
-    """Add new team member (admin only)"""
+    # Add new team member (admin only)
     if request.member["role"] != "admin":
         return jsonify({"error": "Admin access required"}), 403
     
@@ -352,7 +349,7 @@ def add_member():
 @app.route('/api/team/profile', methods=['GET'])
 @require_auth
 def get_profile():
-    """Get current member profile"""
+    # Get current member profile
     return jsonify({
         "name": request.member["name"],
         "email": request.member["email"],
@@ -364,7 +361,7 @@ def get_profile():
 @app.route('/api/team/bot/status', methods=['GET'])
 @require_auth
 def get_bot_status():
-    """Get bot status (all authenticated users)"""
+    # Get bot status (all authenticated users)
     return jsonify({
         "status": "running",
         "uptime": "2 hours",
@@ -374,7 +371,7 @@ def get_bot_status():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
-"""
+'''
         return access_system
     
     def create_team_setup_script(self) -> str:
@@ -451,7 +448,7 @@ ADMIN_PASSWORD={self.security_config.admin_password}
 ENCRYPTION_KEY={self.security_config.encryption_key}
 SESSION_TIMEOUT={self.security_config.session_timeout}
 MAX_LOGIN_ATTEMPTS={self.security_config.max_login_attempts}
-IP_WHITELIST={','.join(self.security_config.ip_whitelist)}
+IP_WHITELIST={','.join(self.security_config.ip_whitelist) if self.security_config.ip_whitelist else ''}
 """,
                 "docker-compose.secure.yml": """version: '3.8'
 
