@@ -1,21 +1,119 @@
-# Virtual environments
-.venv/
-
 # Environment variables
-# .env  # Temporarily commented out for editing
+.env
+.env.local
+.env.*.local
 
-# macOS files
-.DS_Store
-
-# Python bytecode
+# Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Logs and data
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.venv.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
 *.log
-# data_store.json  # Unignored for integration
-# data/  # Unignored for integration
+logs/
+log/
 
-# Credentials
-# service_account.json  # Unignored for integration
-# google_service_account.json  # Unignored for integration
+# Database
+*.db
+*.sqlite
+*.sqlite3
+data/
+chat_history.db
+
+# Session files
+*.session
+*.session-journal
+config/session.session
+config/test_session.session
+chat_history_*.session
+
+# Service account files
+google_service_account.json
+google_service_account_*.json
+*-service-account.json
+
+# PID files
+*.pid
+telegram_manager_bot_unified.pid
+
+# Backup files
+*.backup
+backup/
+*.bak
+
+# Reports and exports
+reports/
+exports/
+*.jsonl
+*.csv
+*.txt
+whitelist_export_*
+whitelist_report_*
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Deployment
+deployment_package/
+nosana_config.json
+
+# Testing
+testing/ai_demo_results.jsonl
+testing/test_report.txt
+
+# Jupyter notebooks
+*.ipynb
+*.ipynb_checkpoints/
+
+# Encryption keys
+*.key
+encryption_key.txt
+
+# Sensitive data
+contact_profiles.json
+data_store.json
