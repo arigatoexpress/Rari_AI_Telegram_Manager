@@ -70,8 +70,6 @@ config/test_session.session
 chat_history_*.session
 
 # Service account files
-google_service_account.json
-google_service_account_*.json
 *-service-account.json
 
 # PID files
