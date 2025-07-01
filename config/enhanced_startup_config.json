@@ -1,0 +1,19 @@
+{
+  "auto_update_enabled": true,
+  "ai_optimization_enabled": true,
+  "performance_monitoring_enabled": true,
+  "health_check_interval": 300,
+  "startup_checks": true,
+  "dependency_validation": true,
+  "environment_validation": true,
+  "service_priorities": [
+    "database",
+    "ai_optimizer",
+    "update_manager",
+    "performance_monitor",
+    "telegram_bot"
+  ],
+  "startup_timeout": 60,
+  "retry_attempts": 3,
+  "fallback_mode": true
+}

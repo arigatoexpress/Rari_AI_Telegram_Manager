@@ -1,145 +1,307 @@
-# 🚀 Setup Guide - Google Sheets & Chat History Encryption
+# 🤖 Telegram Manager Bot - Setup Guide
 
-## ✅ Current Status
+This guide will help you fix and configure your Telegram Manager Bot with all features working correctly.
 
-Your setup is **partially complete**! Here's what's working and what needs to be done:
+## 🚀 Quick Start
 
-### ✅ **What's Working:**
-- ✅ Google Cloud API key added to `.env`
-- ✅ Service account JSON file created
-- ✅ Encryption key generated and configured
-- ✅ Chat history manager tested and working
-- ✅ Bot is running with Ollama
-
-### 🔧 **What Needs Setup:**
-
-## 1. **Google Sheets Setup**
-
-### Step 1: Create a Google Sheet
-1. Go to [Google Sheets](https://sheets.google.com)
-2. Create a new spreadsheet
-3. Copy the **Sheet ID** from the URL:
-   ```
-   https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID_HERE/edit
-   ```
-
-### Step 2: Share with Service Account
-1. Click **Share** in your Google Sheet
-2. Add this email as **Editor**:
-   ```
-   tg-manager-bot@tgmanager-463607.iam.gserviceaccount.com
-   ```
-
-### Step 3: Update .env File
-Edit your `.env` file and replace:
-```
-GOOGLE_SPREADSHEET_ID=your_spreadsheet_id
-```
-with your actual sheet ID.
-
-### Step 4: Test Google Sheets
+### Option 1: Automated Startup (Recommended)
 ```bash
-python test_google_sheets.py
+# Make sure the script is executable
+chmod +x startup.sh
+
+# Start everything with one command
+./startup.sh
 ```
 
-## 2. **Chat History Encryption Setup**
+This will:
+- ✅ Check and start Ollama server
+- ✅ Install required AI models
+- ✅ Test all components
+- ✅ Start the Telegram bot with all features
 
-### Step 1: Install Telethon (for full chat history)
+### Option 2: Manual Startup
 ```bash
-pip install telethon
+# 1. Start Ollama server (if not running)
+ollama serve &
+
+# 2. Pull required AI model
+ollama pull llama3.2:3b
+
+# 3. Test your setup
+python3 test_features.py
+
+# 4. Start the bot
+python3 start_optimized_bot.py
 ```
 
-### Step 2: Your Telegram API Credentials
-You already have these in your `.env`:
-- ✅ `TELEGRAM_API_ID=20785477`
-- ✅ `TELEGRAM_API_HASH=331de234a1c2b2937a054912379b91e1`
-- ✅ `TELEGRAM_PHONE=+12814154111`
+### 3. Test in Telegram
+Send `/help` to your bot to see all available commands.
 
-### Step 3: Test Chat History Manager
+## 🔧 Environment Setup
+
+### Required Environment Variables
+Create a `.env` file in your project root with:
+
+```env
+# Telegram Bot Token (from @BotFather)
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+
+# Telegram API Credentials (for reading chats)
+TELEGRAM_API_ID=your_api_id_here
+TELEGRAM_API_HASH=your_api_hash_here
+TELEGRAM_PHONE=your_phone_number_here
+
+# Authorized Users (comma-separated user IDs)
+AUTHORIZED_USERS=your_user_id_here
+
+# Optional: Google Sheets Integration
+GOOGLE_SHEETS_CREDENTIALS_FILE=google_service_account.json
+GOOGLE_SHEETS_SPREADSHEET_ID=your_spreadsheet_id_here
+```
+
+### Getting Telegram API Credentials
+1. Go to https://my.telegram.org/auth
+2. Log in with your phone number
+3. Go to 'API Development Tools'
+4. Create a new application
+5. Copy API ID and API Hash
+
+### Installing Ollama (AI Backend)
+The bot uses Ollama for AI-powered analysis and outreach generation.
+
+#### Install Ollama:
 ```bash
-python chat_history_manager.py
+# macOS/Linux
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Or download from: https://ollama.ai/download
 ```
 
-## 3. **Bot Commands for Testing**
-
-Once everything is set up, you can test these commands in Telegram:
-
-### Google Sheets Commands:
-- `/brief` - Generate business brief from notes
-- `/export` - Export data to Google Sheets
-- `/lead` - Track leads in your sheet
-
-### Chat History Commands:
-- `/history` - Get chat history insights
-- `/search <query>` - Search encrypted chat history
-- `/export_history` - Export encrypted chat history
-
-## 4. **Security Features**
-
-### 🔐 **Encryption:**
-- All chat history is encrypted with AES-256
-- Encryption key stored in `.env` file
-- Data encrypted at rest and in transit
-- Database stored in `data/chat_history.db`
-
-### 🔒 **Access Control:**
-- Service account has limited permissions
-- API keys stored securely in `.env`
-- Chat history requires authentication
-
-## 5. **Quick Test Commands**
-
-### Test Google Sheets:
+#### Start Ollama Server:
 ```bash
-# Test connection
-python test_google_sheets.py
+# Start the server
+ollama serve
 
-# Test with your bot
-# Send /brief in Telegram
+# In another terminal, pull the required model
+ollama pull llama3.2:3b
 ```
 
-### Test Chat History:
+#### Verify Ollama Installation:
 ```bash
-# Test encryption
-python chat_history_manager.py
+# Check if Ollama is running
+curl http://localhost:11434/api/tags
 
-# Fetch your chat history (will prompt for authentication)
-python -c "
-from chat_history_manager import ChatHistoryManager
-manager = ChatHistoryManager()
-# This will prompt for Telegram authentication
-"
+# Test with a simple query
+ollama run llama3.2:3b "Hello, how are you?"
 ```
 
-## 6. **Troubleshooting**
+## 📋 Available Commands
 
-### Google Sheets Issues:
-- **"Permission denied"**: Make sure you shared the sheet with the service account email
-- **"File not found"**: Check the spreadsheet ID in your `.env`
-- **"API not enabled"**: Enable Google Sheets API in Google Cloud Console
+### Core Features
+- `/start` - Welcome message
+- `/help` - Show all commands
+- `/status` - Check bot status
+- `/stats` - View performance statistics
 
-### Chat History Issues:
-- **"Telethon not installed"**: Run `pip install telethon`
-- **"Authentication failed"**: Check your API ID and hash in `.env`
-- **"Encryption error"**: Regenerate encryption key in `.env`
+### Chat Management
+- `/read_chats` - Sync all Telegram chats
+- `/sync` - Check sync status
+- `/auto_sync` - Toggle automatic sync
 
-## 7. **Next Steps**
+### Contact Management
+- `/contacts` - View all contacts
+- `/leads` - View high-value leads
+- `/crm` - CRM dashboard
 
-1. **Create your Google Sheet** and get the ID
-2. **Share it with the service account**
-3. **Update your `.env` with the sheet ID**
-4. **Test both integrations**
-5. **Start using the bot commands!**
+### 🎯 NEW: Outreach Features
+- `/outreach` - Generate outreach blurbs for all contacts
+- `/blurbs` - View existing outreach blurbs
+- `/followup` - Get follow-up recommendations
 
-## 🎯 **Ready to Test?**
+### Analysis & Insights
+- `/analyze [chat_id]` - Analyze specific chat
+- `/insights` - Generate business insights
+- `/dailybrief` - Daily summary
 
-Your bot is already running! Try these commands in Telegram:
+### Note Management
+- `/note <text>` - Create a note
+- `/notes [category]` - View notes
 
-1. **Test basic functionality**: `/start`
-2. **Test AI responses**: `/generate Hello, how are you?`
-3. **Test Google Sheets** (after setup): `/brief`
-4. **Test chat history** (after setup): `/history`
+## 🔄 Workflow
 
----
+### 1. Initial Setup
+```bash
+# Test everything works
+python test_features.py
 
-**Need help?** Check the logs in your terminal where the bot is running, or run the test scripts to diagnose issues. 
+# Start the bot
+python start_optimized_bot.py
+```
+
+### 2. Sync Your Chats
+In Telegram, send:
+```
+/read_chats
+```
+This will:
+- Read all your Telegram chats
+- Extract contact information
+- Calculate lead scores
+- Store everything in the database
+
+### 3. Generate Outreach Blurbs
+```
+/outreach
+```
+This will:
+- Generate personalized outreach messages for each contact
+- Store them for easy access
+- Prioritize high-value leads
+
+### 4. View Your Data
+```
+/contacts    # View all contacts
+/leads       # View high-value leads
+/blurbs      # View outreach messages
+/followup    # Get follow-up recommendations
+```
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+
+#### 1. "TELEGRAM_BOT_TOKEN not found"
+- Make sure you have a `.env` file
+- Get your bot token from @BotFather
+- Add it to the `.env` file
+
+#### 2. "Telegram API credentials not configured"
+- Get API credentials from https://my.telegram.org/auth
+- Add them to your `.env` file
+
+#### 3. "No contacts found"
+- Run `/read_chats` first to sync your chats
+- Make sure you have conversations in Telegram
+
+#### 4. Import errors
+```bash
+pip install -r requirements.txt
+```
+
+#### 5. Database errors
+```bash
+# Remove old database (if corrupted)
+rm -rf data/
+# Restart the bot
+python start_optimized_bot.py
+```
+
+### Testing Individual Components
+
+#### Test Data Manager
+```python
+from core.data_manager import DataManager
+dm = DataManager()
+# Test adding a message
+success, msg = await dm.add_message(test_message)
+```
+
+#### Test AI Analyzer
+```python
+from core.ai_analyzer import AIAnalyzer
+analyzer = AIAnalyzer(dm)
+# Test sentiment analysis
+sentiment = await analyzer._analyze_sentiment("Test message")
+```
+
+#### Test Outreach Features
+```python
+from telegram_bot_optimized import OptimizedTelegramBot
+bot = OptimizedTelegramBot()
+# Test blurb generation
+blurb = await bot._generate_outreach_blurb(test_contact)
+```
+
+## 📊 Features Overview
+
+### ✅ Working Features
+- **Chat Synchronization**: Read and sync all Telegram chats
+- **Contact Management**: Automatic contact extraction and lead scoring
+- **Outreach Automation**: Generate personalized outreach blurbs
+- **Follow-up Recommendations**: Get actionable follow-up suggestions
+- **AI Analysis**: Sentiment analysis and business insights
+- **Note Management**: Create and organize notes
+- **Google Sheets Integration**: Sync data to spreadsheets
+- **Performance Monitoring**: Track bot statistics
+
+### 🎯 Outreach System
+The outreach system automatically:
+1. **Analyzes Contacts**: Evaluates lead scores and engagement
+2. **Generates Blurbs**: Creates personalized outreach messages
+3. **Categorizes Leads**: High-value, medium-value, general contacts
+4. **Recommends Actions**: Suggests follow-up activities
+5. **Tracks Progress**: Monitors outreach effectiveness
+
+### 📈 Lead Scoring
+Contacts are scored based on:
+- **Message Count** (40%): More messages = higher engagement
+- **Sentiment Score** (30%): Positive sentiment = better relationship
+- **Engagement Ratio** (30%): Positive vs negative message ratio
+
+## 🔒 Security
+
+### Authorization
+- Set `AUTHORIZED_USERS` in `.env` to restrict access
+- Bot will only respond to authorized users
+- All data is stored locally by default
+
+### Data Privacy
+- Messages are processed locally
+- No data is sent to external services (except Google Sheets if configured)
+- Database is encrypted and secure
+
+## 🚀 Advanced Configuration
+
+### Custom Lead Scoring
+Edit `core/data_manager.py` to customize scoring:
+```python
+def _calculate_lead_score(self, message_count, avg_sentiment, positive_messages, negative_messages):
+    # Customize weights here
+    message_score = min(message_count / 100, 0.4)
+    sentiment_score = max(0, avg_sentiment) * 0.3
+    engagement_score = (positive_messages / total_messages) * 0.3
+    return min(message_score + sentiment_score + engagement_score, 1.0)
+```
+
+### Custom Outreach Templates
+Edit the `_generate_outreach_blurb` method in `telegram_bot_optimized.py` to customize outreach messages.
+
+### Google Sheets Integration
+1. Create a Google Cloud project
+2. Enable Google Sheets API
+3. Create a service account
+4. Download credentials as `google_service_account.json`
+5. Share your spreadsheet with the service account email
+
+## 📞 Support
+
+If you encounter issues:
+
+1. **Run the test script**: `python test_features.py`
+2. **Check the logs**: Look at `telegram_bot_optimized.log`
+3. **Verify environment**: Make sure all variables are set
+4. **Test components**: Use the individual test functions above
+
+## 🎉 Success Checklist
+
+- [ ] Environment variables configured
+- [ ] Bot starts without errors
+- [ ] `/help` command works
+- [ ] `/read_chats` syncs your chats
+- [ ] `/contacts` shows your contacts
+- [ ] `/outreach` generates blurbs
+- [ ] `/blurbs` shows outreach messages
+- [ ] `/followup` gives recommendations
+- [ ] All commands respond correctly
+
+Once all items are checked, your bot is fully functional! 🚀 
