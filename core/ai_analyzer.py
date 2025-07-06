@@ -88,6 +88,9 @@ class AIAnalyzer:
     def _initialize_client(self):
         """Initialize Ollama client"""
         try:
+            from ollama_client import initialize_ollama_client, get_ollama_client
+            # Initialize the client first
+            initialize_ollama_client()
             self.client = get_ollama_client()
             logger.info("✅ AI Analyzer initialized with Ollama client")
         except Exception as e:
@@ -143,6 +146,10 @@ class AIAnalyzer:
     
     async def _analyze_sentiment(self, text: str) -> float:
         """Analyze sentiment of text"""
+        if not self.client:
+            # Fallback to simple keyword analysis
+            return self._simple_sentiment_analysis(text)
+        
         try:
             prompt = f"""
             Analyze the sentiment of the following text and return a score between -1 (very negative) and 1 (very positive).
@@ -161,24 +168,18 @@ class AIAnalyzer:
                 return float(result)
             except ValueError:
                 # If parsing fails, do simple keyword analysis
-                positive_words = ['good', 'great', 'excellent', 'amazing', 'love', 'like', 'happy', 'thanks']
-                negative_words = ['bad', 'terrible', 'awful', 'hate', 'dislike', 'angry', 'sad']
-                
-                text_lower = text.lower()
-                positive_count = sum(1 for word in positive_words if word in text_lower)
-                negative_count = sum(1 for word in negative_words if word in text_lower)
-                
-                if positive_count == 0 and negative_count == 0:
-                    return 0.0
-                
-                return (positive_count - negative_count) / (positive_count + negative_count)
+                return self._simple_sentiment_analysis(text)
                 
         except Exception as e:
             logger.error(f"❌ Error analyzing sentiment: {e}")
-            return 0.0
+            return self._simple_sentiment_analysis(text)
     
     async def _extract_topics(self, text: str) -> List[str]:
         """Extract key topics from text"""
+        if not self.client:
+            # Fallback to keyword extraction
+            return self._extract_keywords(text, max_keywords=5)
+        
         try:
             prompt = f"""
             Extract 3-5 key topics from the following text. Return only the topics separated by commas, no other text.
@@ -196,10 +197,14 @@ class AIAnalyzer:
             
         except Exception as e:
             logger.error(f"❌ Error extracting topics: {e}")
-            return []
+            return self._extract_keywords(text, max_keywords=5)
     
     async def _analyze_business_opportunities(self, text: str) -> List[str]:
         """Analyze text for business opportunities"""
+        if not self.client:
+            # Fallback to simple keyword analysis
+            return []
+        
         try:
             prompt = f"""
             Analyze the following text for potential business opportunities. 
@@ -371,10 +376,10 @@ class AIAnalyzer:
             logger.error(f"❌ Error analyzing sentiment: {e}")
             return 0.0, 0.0
     
-    def _simple_sentiment_analysis(self, text: str) -> Tuple[float, float]:
+    def _simple_sentiment_analysis(self, text: str) -> float:
         """Simple rule-based sentiment analysis"""
         if not text:
-            return 0.0, 0.0
+            return 0.0
         
         text_lower = text.lower()
         
@@ -400,15 +405,12 @@ class AIAnalyzer:
         # Calculate sentiment score
         total_words = len(words)
         if total_words == 0:
-            return 0.0, 0.0
+            return 0.0
         
         sentiment = (positive_count - negative_count) / total_words
         sentiment = max(-1.0, min(1.0, sentiment * 5))  # Scale and clamp
         
-        # Calculate confidence based on word count
-        confidence = min(0.9, total_words / 50)  # Higher confidence with more words
-        
-        return sentiment, confidence
+        return sentiment
     
     async def extract_topics(self, messages: List[Dict]) -> List[str]:
         """Extract key topics from messages"""

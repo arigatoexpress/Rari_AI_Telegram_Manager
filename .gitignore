@@ -1,7 +1,8 @@
-# Environment variables
+# Environment and Configuration
 .env
 .env.local
-.env.*.local
+.env.backup
+*.env
 
 # Python
 __pycache__/
@@ -26,13 +27,28 @@ wheels/
 *.egg
 MANIFEST
 
-# Virtual environments
+# Virtual Environment
 .venv/
 venv/
 ENV/
 env/
-.venv.bak/
-venv.bak/
+
+# Logs
+logs/*.log
+*.log
+
+# Database
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
+# Session Files
+*.session
+*.session-journal
+
+# Lock Files
+bot.lock
+*.lock
 
 # IDE
 .vscode/
@@ -50,68 +66,21 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
-# Logs
-*.log
-logs/
-log/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-data/
-chat_history.db
-
-# Session files
-*.session
-*.session-journal
-config/session.session
-config/test_session.session
-chat_history_*.session
-
-# Service account files
-*-service-account.json
-
-# PID files
-*.pid
-telegram_manager_bot_unified.pid
-
-# Backup files
-*.backup
-backup/
-*.bak
-
-# Reports and exports
-reports/
-exports/
-*.jsonl
-*.csv
-*.txt
-whitelist_export_*
-whitelist_report_*
-
-# Temporary files
+# Temporary Files
 *.tmp
 *.temp
 temp/
 tmp/
 
-# Deployment
-deployment_package/
-nosana_config.json
+# Google Service Account (if used)
+google_service_account.json
+service_account.json
 
-# Testing
-testing/ai_demo_results.jsonl
-testing/test_report.txt
+# Backup Files
+*.backup
+*.bak
 
-# Jupyter notebooks
-*.ipynb
-*.ipynb_checkpoints/
-
-# Encryption keys
-*.key
-encryption_key.txt
-
-# Sensitive data
-contact_profiles.json
-data_store.json
+# API Keys and Secrets
+api_keys.txt
+secrets.txt
+credentials.json
