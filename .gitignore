@@ -37,14 +37,22 @@ env/
 logs/*.log
 *.log
 
-# Database
+# Database Files - CRITICAL: Never commit these!
+data/
+*.db
+*.sqlite
+*.sqlite3
 data/*.db
 data/*.sqlite
 data/*.sqlite3
+chat_history.db
+telegram_manager.db
+sync_tracking.db
 
-# Session Files
+# Session Files - CRITICAL: Contains auth tokens!
 *.session
 *.session-journal
+sync_session.session
 
 # Lock Files
 bot.lock
@@ -72,15 +80,25 @@ Thumbs.db
 temp/
 tmp/
 
-# Google Service Account (if used)
+# Google Service Account (if used) - CRITICAL: Contains credentials!
 google_service_account.json
 service_account.json
+*service_account*.json
 
 # Backup Files
 *.backup
 *.bak
 
-# API Keys and Secrets
+# API Keys and Secrets - CRITICAL: Never commit these!
 api_keys.txt
 secrets.txt
 credentials.json
+*.key
+*.pem
+*.p12
+
+# Bot Tokens and Sensitive Data - CRITICAL!
+*token*
+*secret*
+*password*
+*credential*
