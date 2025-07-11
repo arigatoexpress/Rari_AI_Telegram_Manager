@@ -1101,3 +1101,225 @@ class DataManager:
                 return industry
         
         return "N/A" 
+
+    # Add missing methods that the bot is trying to use
+    async def get_recent_messages(self, days: int = 7, chat_id: Optional[int] = None, limit: int = 1000) -> List[Dict]:
+        """Get recent messages from specified days"""
+        conn = None
+        try:
+            conn = self._get_connection()
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            cutoff_date = datetime.now() - timedelta(days=days)
+            
+            if chat_id:
+                cursor.execute('''
+                    SELECT * FROM messages 
+                    WHERE chat_id = ? AND timestamp >= ? AND is_duplicate = FALSE
+                    ORDER BY timestamp DESC 
+                    LIMIT ?
+                ''', (chat_id, cutoff_date.isoformat(), limit))
+            else:
+                cursor.execute('''
+                    SELECT * FROM messages 
+                    WHERE timestamp >= ? AND is_duplicate = FALSE
+                    ORDER BY timestamp DESC 
+                    LIMIT ?
+                ''', (cutoff_date.isoformat(), limit))
+            
+            messages = []
+            for row in cursor.fetchall():
+                msg_dict = dict(row)
+                msg_dict['keywords'] = self._deserialize_list(msg_dict.get('keywords', '[]'))
+                messages.append(msg_dict)
+            
+            return messages
+            
+        except Exception as e:
+            logger.error(f"❌ Error getting recent messages: {e}")
+            return []
+        finally:
+            if conn:
+                self._return_connection(conn)
+    
+    def get_chat_list(self, limit: int = 50) -> List[Dict]:
+        """Get list of chats with message counts"""
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT 
+                    chat_title,
+                    chat_id,
+                    COUNT(*) as message_count,
+                    COUNT(DISTINCT user_id) as participant_count,
+                    MAX(timestamp) as last_message,
+                    MIN(timestamp) as first_message
+                FROM messages 
+                WHERE is_duplicate = FALSE AND chat_title IS NOT NULL
+                GROUP BY chat_id, chat_title
+                ORDER BY message_count DESC
+                LIMIT ?
+            ''', (limit,))
+            
+            chats = []
+            for row in cursor.fetchall():
+                chats.append({
+                    'title': row[0],
+                    'chat_id': row[1],
+                    'message_count': row[2],
+                    'participant_count': row[3],
+                    'last_message': row[4],
+                    'first_message': row[5]
+                })
+            
+            return chats
+            
+        except Exception as e:
+            logger.error(f"❌ Error getting chat list: {e}")
+            return []
+        finally:
+            if conn:
+                conn.close()
+    
+    def get_last_message_timestamp(self, chat_id: int) -> Optional[datetime]:
+        """Get the timestamp of the last message in a chat"""
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT MAX(timestamp) FROM messages 
+                WHERE chat_id = ? AND is_duplicate = FALSE
+            ''', (chat_id,))
+            
+            result = cursor.fetchone()
+            if result and result[0]:
+                return datetime.fromisoformat(result[0])
+            return None
+            
+        except Exception as e:
+            logger.error(f"❌ Error getting last message timestamp: {e}")
+            return None
+        finally:
+            if conn:
+                conn.close()
+    
+    def store_message(self, message_data: Dict[str, Any]) -> bool:
+        """Store a message (synchronous version for compatibility)"""
+        try:
+            # Convert timestamp if it's a datetime object
+            if isinstance(message_data.get('timestamp'), datetime):
+                message_data['timestamp'] = message_data['timestamp'].isoformat()
+            
+            # Generate content hash
+            content = f"{message_data.get('message_text', '')}{message_data.get('timestamp', '')}"
+            content_hash = self._generate_hash(content)
+            
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            # Create message ID
+            message_id = f"msg_{message_data.get('message_id', 0)}_{message_data.get('chat_id', 0)}"
+            
+            cursor.execute('''
+                INSERT OR REPLACE INTO messages (
+                    id, message_id, chat_id, chat_title, user_id, username, first_name, last_name,
+                    message_text, message_type, timestamp, content_hash, sentiment_score,
+                    keywords, is_duplicate, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                message_id,
+                message_data.get('message_id', 0),
+                message_data.get('chat_id', 0),
+                message_data.get('chat_title', ''),
+                message_data.get('user_id', 0),
+                message_data.get('username', ''),
+                message_data.get('first_name', ''),
+                message_data.get('last_name', ''),
+                message_data.get('message_text', ''),
+                message_data.get('message_type', 'text'),
+                message_data.get('timestamp', ''),
+                content_hash,
+                0.0,  # sentiment_score
+                '[]',  # keywords
+                False,  # is_duplicate
+                datetime.now().isoformat()
+            ))
+            
+            conn.commit()
+            self._return_connection(conn)
+            
+            # Also store/update contact information
+            self._store_contact_from_message(message_data)
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Error storing message: {e}")
+            return False
+    
+    def _store_contact_from_message(self, message_data: Dict[str, Any]):
+        """Extract and store contact information from message"""
+        try:
+            user_id = message_data.get('user_id')
+            if not user_id or user_id == 0:
+                return
+            
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            # Check if contact exists
+            cursor.execute('SELECT id FROM contacts WHERE id = ?', (str(user_id),))
+            exists = cursor.fetchone()
+            
+            name = f"{message_data.get('first_name', '')} {message_data.get('last_name', '')}".strip()
+            if not name:
+                name = message_data.get('username', f'User {user_id}')
+            
+            if exists:
+                # Update existing contact
+                cursor.execute('''
+                    UPDATE contacts SET
+                        name = ?,
+                        username = ?,
+                        message_count = message_count + 1,
+                        last_message_date = ?,
+                        updated_at = ?
+                    WHERE id = ?
+                ''', (
+                    name,
+                    message_data.get('username', ''),
+                    message_data.get('timestamp', ''),
+                    datetime.now().isoformat(),
+                    str(user_id)
+                ))
+            else:
+                # Create new contact
+                cursor.execute('''
+                    INSERT INTO contacts (
+                        id, name, username, category, priority, message_count,
+                        last_message_date, lead_score, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    str(user_id),
+                    name,
+                    message_data.get('username', ''),
+                    'contact',
+                    1,
+                    1,
+                    message_data.get('timestamp', ''),
+                    0.0,
+                    datetime.now().isoformat(),
+                    datetime.now().isoformat()
+                ))
+            
+            conn.commit()
+            self._return_connection(conn)
+            
+        except Exception as e:
+            logger.error(f"❌ Error storing contact: {e}") 

@@ -90,15 +90,81 @@ service_account.json
 *.bak
 
 # API Keys and Secrets - CRITICAL: Never commit these!
-api_keys.txt
-secrets.txt
-credentials.json
-*.key
-*.pem
-*.p12
-
-# Bot Tokens and Sensitive Data - CRITICAL!
 *token*
 *secret*
 *password*
 *credential*
+
+# ===========================================================
+# ULTRA-CRITICAL: SENSITIVE DATA PROTECTION
+# ===========================================================
+# These directories contain actual user data, conversations, 
+# and business intelligence that must NEVER be committed!
+
+# Sensitive Data Directories
+exports/
+data/
+backups/
+cache/
+logs/
+sheets_exports/
+reports/
+
+# Data Export Files (contain real user data)
+*.csv
+*.xlsx
+*.json
+extraction_summary_*.txt
+export_*.txt
+*_summary_*.txt
+*_report_*.txt
+
+# Environment and Config Files (may contain secrets)
+.env*
+config.env*
+*.env*
+env.example
+.env.example
+
+# Session and Auth Files  
+*.session*
+*.auth
+auth_*
+session_*
+
+# Scripts with Hardcoded Secrets (security risk)
+quick_env_fix.py
+fix_phone_number.py
+fix_env.py
+
+# Personal/Contact/Business Data
+*phone*
+*contact*
+*personal*
+*telegram_data*
+*chat_history*
+*business_leads*
+*conversation*
+
+# Google Sheets and API Files
+google_sheets_*.json
+sheets_*.json
+credentials_*.json
+service_account_*.json
+
+# AI/OpenAI Related
+openai_*.json
+ai_responses_*.json
+gpt_*.json
+
+# Local Development
+local_*
+test_*
+debug_*
+*.local
+
+# Any files containing actual data
+*_data.json
+*_contacts.json
+*_messages.json
+*_leads.json
