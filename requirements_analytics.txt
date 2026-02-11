@@ -16,15 +16,8 @@ google-auth-oauthlib==1.0.0
 google-auth-httplib2==0.1.0
 google-api-python-client==2.95.0
 
-# Database
-sqlite3  # Built into Python
-
 # Utilities
 python-dotenv==1.0.0
-pathlib  # Built into Python
-datetime  # Built into Python
-logging  # Built into Python
-asyncio  # Built into Python
 
 # Optional: For enhanced analytics
 scipy==1.11.1

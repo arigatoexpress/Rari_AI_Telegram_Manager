@@ -12,7 +12,6 @@ Intelligent caching optimized for sporadic usage patterns:
 
 import asyncio
 import json
-import pickle
 import gzip
 import time
 import hashlib
@@ -391,7 +390,7 @@ class SmartCache:
             }
             
             # Serialize and optionally compress
-            serialized = pickle.dumps(data)
+            serialized = json.dumps(data, default=str).encode('utf-8')
             
             if self.enable_compression and len(serialized) > 1024:  # Compress if > 1KB
                 serialized = gzip.compress(serialized)
@@ -446,7 +445,11 @@ class SmartCache:
             if metadata.get('compressed', False):
                 data = gzip.decompress(data)
             
-            obj_data = pickle.loads(data)
+            try:
+                obj_data = json.loads(data.decode('utf-8'))
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                logger.warning("Skipping non-JSON disk cache entry (possible legacy pickle data)")
+                return None
             
             # Create cache entry
             entry = CacheEntry(
@@ -508,8 +511,8 @@ class SmartCache:
                 return sum(self._calculate_size(k) + self._calculate_size(v) 
                           for k, v in value.items())
             else:
-                # Use pickle size as approximation
-                return len(pickle.dumps(value))
+                # Use JSON size as approximation
+                return len(json.dumps(value, default=str).encode('utf-8'))
         except Exception:
             return 1024  # Default estimate
     
