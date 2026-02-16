@@ -470,7 +470,7 @@ class DifferentialBackupManager:
         
         if metadata.backup_type == "full":
             source_path = self.full_backups_dir / backup_filename
-            else:
+        else:
             source_path = self.differential_dir / backup_filename
         
         if not source_path.exists():
@@ -526,8 +526,8 @@ class DifferentialBackupManager:
                 if backup_time < cutoff_date:
                     backup_file.unlink()
                     logger.info(f"🗑️ Removed old full backup: {backup_file.name}")
-                    
-        except Exception as e:
+
+            except Exception as e:
                 logger.error(f"❌ Failed to process backup file {backup_file}: {e}")
         
         # Clean up differential backups
@@ -612,15 +612,15 @@ class DifferentialBackupManager:
         diff_backups = list(self.differential_dir.glob("*.zip"))
         
         total_backup_size = sum(f.stat().st_size for f in full_backups + diff_backups)
-                
-                return {
-            'last_full_backup': asdict(self.last_full_backup) if self.last_full_backup else None,
-            'last_differential_backup': asdict(self.last_differential_backup) if self.last_differential_backup else None,
-            'full_backups_count': len(full_backups),
-            'differential_backups_count': len(diff_backups),
-            'total_backup_size_mb': total_backup_size / (1024 * 1024),
-            'sync_targets': {name: asdict(target) for name, target in self.sync_targets.items()},
-            'needs_backup': await self.needs_backup()
+
+        return {
+            "last_full_backup": asdict(self.last_full_backup) if self.last_full_backup else None,
+            "last_differential_backup": asdict(self.last_differential_backup) if self.last_differential_backup else None,
+            "full_backups_count": len(full_backups),
+            "differential_backups_count": len(diff_backups),
+            "total_backup_size_mb": total_backup_size / (1024 * 1024),
+            "sync_targets": {name: asdict(target) for name, target in self.sync_targets.items()},
+            "needs_backup": await self.needs_backup(),
         }
 
 # Global instance

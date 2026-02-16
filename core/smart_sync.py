@@ -168,8 +168,8 @@ class SmartSyncManager:
                 # Schedule auto-backup
                 if self.auto_backup_enabled:
                     await self._schedule_auto_backup()
-            
-        except Exception as e:
+
+            except Exception as e:
                 logger.error(f"❌ Operation scheduler error: {e}")
     
     async def _schedule_auto_sync(self):
