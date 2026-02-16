@@ -24,8 +24,8 @@ Complete setup guide for the Telegram Business Development Intelligence System.
 
 ```bash
 # Clone the repository
-git clone <your-repository-url>
-cd tg_manager_v2
+git clone https://github.com/arigatoexpress/Rari_AI_Telegram_Manager.git
+cd Rari_AI_Telegram_Manager
 
 # Install Python dependencies
 pip install -r requirements.txt

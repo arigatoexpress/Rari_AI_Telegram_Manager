@@ -1,5 +1,7 @@
 # Telegram BD Intelligence System 🚀
 
+> See `AGENTS.md` for agentic navigation.
+
 **Advanced AI-powered business development and lead management platform with Telegram integration.**
 
 Transform your Telegram conversations into actionable business intelligence using ChatGPT analysis, automated lead scoring, and professional Google Sheets reporting.
@@ -40,8 +42,8 @@ Transform your Telegram conversations into actionable business intelligence usin
 
 ```bash
 # Clone the repository
-git clone <your-repository-url>
-cd tg_manager_v2
+git clone https://github.com/arigatoexpress/Rari_AI_Telegram_Manager.git
+cd Rari_AI_Telegram_Manager
 
 # Install dependencies
 pip install -r requirements.txt
