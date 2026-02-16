@@ -73,7 +73,8 @@ Service Account Details:
 
 ```bash
 # Enable via CLI (recommended)
-gcloud config set project YOUR_PROJECT_ID
+export PROJECT_ID="your-project-id"
+gcloud config set project "$PROJECT_ID"
 
 gcloud services enable \
   serviceusage.googleapis.com \

@@ -615,7 +615,7 @@ ADK's model flexibility allows integrating various LLMs for different needs.
     *   Model strings: `"gemini-2.5-flash"`, `"gemini-2.5-pro"`, etc.
 *   **Vertex AI (Production)**:
     *   Authenticate via `gcloud auth application-default login` (recommended).
-    *   Set `GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"`, `GOOGLE_CLOUD_LOCATION="your-region"` (environment variables).
+    *   Set `GOOGLE_CLOUD_PROJECT="your-project-id"`, `GOOGLE_CLOUD_LOCATION="your-region"` (environment variables).
     *   Set `GOOGLE_GENAI_USE_VERTEXAI="True"`.
     *   Model strings: `"gemini-2.5-flash"`, `"gemini-2.5-pro"`, or full Vertex AI endpoint resource names for specific deployments.
 

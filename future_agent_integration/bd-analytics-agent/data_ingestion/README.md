@@ -11,9 +11,10 @@ You can trigger the pipeline for an initial data load or schedule it to run peri
 Before running any commands, ensure you have set your Google Cloud Project ID as an environment variable. This variable will be used by the subsequent `make` commands.
 
 ```bash
-export PROJECT_ID="YOUR_PROJECT_ID"
+export PROJECT_ID="your-project-id"
+# Or (if gcloud is configured): export PROJECT_ID="$(gcloud config get-value project)"
 ```
-Replace `"YOUR_PROJECT_ID"` with your actual Google Cloud Project ID.
+Replace `your-project-id` with your actual Google Cloud Project ID.
 
 Now, you can set up the development environment:
 
